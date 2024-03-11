@@ -1,13 +1,12 @@
 // A widget that displays the picture taken by the user.
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:monument_recognition/Classifier/Inference.dart';
 
-import 'package:monument_recognition/providers/monuments_data_provider.dart';
+import 'package:dio/dio.dart';
 
-class DisplayScreen extends ConsumerStatefulWidget {
+class DisplayScreen extends StatefulWidget {
   const DisplayScreen({
     super.key,
     required this.selectedImage,
@@ -15,22 +14,40 @@ class DisplayScreen extends ConsumerStatefulWidget {
   final File selectedImage;
 
   @override
-  ConsumerState<DisplayScreen> createState() => _DisplayScreenState();
+  State<DisplayScreen> createState() => _DisplayScreenState();
 }
 
-class _DisplayScreenState extends ConsumerState<DisplayScreen> {
+class _DisplayScreenState extends State<DisplayScreen> {
   //getting the prediction for selected or captured image
-  late Future<List> predict =
-      Inference(selectedImage: widget.selectedImage).output;
+
+  Future predictData() async {
+    const String baseUrl = 'http://192.168.101.11:8000/predict';
+    final dio = Dio();
+
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(widget.selectedImage.path,
+          filename: 'image.jpg'),
+    });
+    final response = await Isolate.run(() => dio.post(baseUrl,
+        data: formData,
+        options: Options(headers: {
+          'Content-Type': 'multipart/form-data',
+        })));
+
+    return response.data;
+  }
 
   @override
-  void initState() {
-    super.initState();
+  void dispose() {
+    super.dispose();
+    // ImageCache().evict(FileImage(widget.selectedImage));
+    // ImageCache().clear();
+
+    FileImage(widget.selectedImage).evict();
   }
 
   @override
   Widget build(BuildContext context) {
-    final monuments = ref.read(monumentsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Display the Picture')),
       body: Padding(
@@ -50,29 +67,29 @@ class _DisplayScreenState extends ConsumerState<DisplayScreen> {
                 width: double.infinity,
               ),
               FutureBuilder(
-                  future: predict,
+                  future: predictData(),
                   builder: ((context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     } else {
-                      final data = snapshot.data as List<double>;
-                      double maxNumber = data.reduce((value, element) => value >
-                              element
-                          ? value
-                          : element); //Finding maximum value in the result's list
-
-                      final index = data.indexOf(maxNumber);
-                      final monumentName = monuments.asMap()[index]?.name;
-                      final monumentDescription =
-                          monuments.asMap()[index]?.description;
+                      final data = snapshot.data;
+                      final monumentsName = data['class'];
+                      double confidence = data['confidence'];
+                      final rconfidence = confidence.toStringAsFixed(2);
+                      final monumentDescription = data['description'];
 
                       return Expanded(
                         child: ListView(
                           children: [
-                            Text('$monumentName',
+                            Text('$monumentsName',
                                 style:
                                     Theme.of(context).textTheme.headlineLarge,
                                 textAlign: TextAlign.center),
+                            Text(
+                              'Confidence($rconfidence)',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
+                            ),
                             const SizedBox(
                               height: 20,
                             ),
@@ -81,7 +98,7 @@ class _DisplayScreenState extends ConsumerState<DisplayScreen> {
                             const SizedBox(
                               height: 20,
                             ),
-                            Text('$monumentDescription'),
+                            Text("$monumentDescription"),
                           ],
                         ),
                       );

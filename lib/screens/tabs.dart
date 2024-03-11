@@ -1,23 +1,21 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:monument_recognition/screens/TakePictureScreen.dart';
 import 'package:monument_recognition/screens/galleryScreen.dart';
 
 // ignore: must_be_immutable
-class TabsScreen extends ConsumerStatefulWidget {
+class TabsScreen extends StatefulWidget {
   TabsScreen({super.key, required this.selectedCamera});
   CameraDescription selectedCamera;
 
   @override
-  ConsumerState<TabsScreen> createState() {
+  State<TabsScreen> createState() {
     return _TabsScreenState();
   }
 }
 
-class _TabsScreenState extends ConsumerState<TabsScreen> {
+class _TabsScreenState extends State<TabsScreen> {
   int _selectedPageIndex = 0;
 
   void _selectPage(int index) {

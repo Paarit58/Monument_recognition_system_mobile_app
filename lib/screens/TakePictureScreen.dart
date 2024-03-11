@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import 'package:monument_recognition/screens/DisplayScreen.dart';
+// import 'package:monument_recognition/screens/DisplayScreen1.dart';
 
 // A screen that allows users to take a picture using a given camera.
 class TakePictureScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
     // create a CameraController.
     _controller = CameraController(
       // Get a specific camera from the list of available cameras.
-      widget.camera as CameraDescription,
+      widget.camera,
       // Define the resolution to use.
       ResolutionPreset.medium,
     );
@@ -98,7 +99,6 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             );
           } catch (e) {
             // If an error occurs, log the error to the console.
-            print(e);
           }
         },
         child: const Icon(Icons.camera_rounded),
